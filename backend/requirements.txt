@@ -1,0 +1,13 @@
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+yfinance>=0.2.54
+haver==0.8.0
+parallel-web
+synthefy
+python-dotenv==1.0.0
+pandas==2.2.0
+pydantic==2.5.3
+aiohttp==3.9.1
+openai>=1.0.0
+markdown>=3.5.0
+
