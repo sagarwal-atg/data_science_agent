@@ -11,6 +11,7 @@ from .haver_service import (
 )
 from .parallel_search import search_time_series_event, SearchResult
 from .backtest_service import run_backtest, BacktestResult, BacktestWindow
+from .critical_events_service import search_critical_events, CriticalEventsResult
 
 __all__ = [
     "fetch_yahoo_data",
@@ -26,5 +27,7 @@ __all__ = [
     "run_backtest",
     "BacktestResult",
     "BacktestWindow",
+    "search_critical_events",
+    "CriticalEventsResult",
 ]
 

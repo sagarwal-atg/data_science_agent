@@ -8,6 +8,8 @@ import type {
   SearchRequest,
   BacktestResult,
   BacktestRequest,
+  CriticalEventsResult,
+  CriticalEventsRequest,
 } from './types';
 
 const API_BASE = '/api';
@@ -65,6 +67,14 @@ export async function runBacktest(
   request: BacktestRequest
 ): Promise<BacktestResult> {
   const response = await axios.post<BacktestResult>(`${API_BASE}/backtest`, request);
+  return response.data;
+}
+
+// Critical Events API
+export async function searchCriticalEvents(
+  request: CriticalEventsRequest
+): Promise<CriticalEventsResult> {
+  const response = await axios.post<CriticalEventsResult>(`${API_BASE}/critical-events`, request);
   return response.data;
 }
 

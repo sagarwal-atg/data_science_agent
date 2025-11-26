@@ -16,7 +16,6 @@ export function DataSourceSelector({
   const [dataSource, setDataSource] = useState<DataSource>('yahoo');
   const [yahooTicker, setYahooTicker] = useState('NVDA');
 
-  // Haver state
   const [databases, setDatabases] = useState<HaverDatabase[]>([]);
   const [selectedDatabase, setSelectedDatabase] = useState<string>('');
   const [series, setSeries] = useState<HaverSeries[]>([]);
@@ -25,14 +24,12 @@ export function DataSourceSelector({
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [seriesSearch, setSeriesSearch] = useState('');
 
-  // Load databases when Haver is selected
   useEffect(() => {
     if (dataSource === 'haver' && databases.length === 0) {
       loadDatabases();
     }
   }, [dataSource]);
 
-  // Load series when database is selected
   useEffect(() => {
     if (selectedDatabase) {
       loadSeriesForDatabase(selectedDatabase);
@@ -85,84 +82,78 @@ export function DataSourceSelector({
   );
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">Data Source</h2>
-
-      {/* Source Toggle */}
-      <div className="flex gap-2 mb-6">
+    <div className="bg-white rounded-xl p-3 border border-cream-200">
+      {/* Compact Source Toggle */}
+      <div className="flex gap-1 mb-3 bg-cream-100 p-1 rounded-lg">
         <button
           onClick={() => setDataSource('yahoo')}
-          className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all duration-200 ${dataSource === 'yahoo'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${dataSource === 'yahoo'
+              ? 'bg-white text-slate-800 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
             }`}
         >
-          Yahoo Finance
+          Yahoo
         </button>
         <button
           onClick={() => setDataSource('haver')}
-          className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all duration-200 ${dataSource === 'haver'
-              ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${dataSource === 'haver'
+              ? 'bg-white text-slate-800 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
             }`}
         >
-          Haver Analytics
+          Haver
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-2">
         {dataSource === 'yahoo' ? (
-          /* Yahoo Finance Input */
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-2">
-              Stock Ticker
-            </label>
+          <div className="flex gap-2">
             <input
               type="text"
               value={yahooTicker}
               onChange={(e) => setYahooTicker(e.target.value)}
-              placeholder="e.g., NVDA, AAPL, MSFT"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
+              placeholder="NVDA, AAPL..."
+              className="flex-1 px-3 py-2 bg-cream-50 border border-cream-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-coral-400"
             />
+            <button
+              type="submit"
+              disabled={loading || !yahooTicker.trim()}
+              className="px-4 py-2 bg-coral-500 text-white font-medium rounded-lg hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                'Load'
+              )}
+            </button>
           </div>
         ) : (
-          /* Haver Analytics Hierarchical Selection */
-          <>
-            {/* Database Selection */}
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">
-                Database
-              </label>
-              {loadingDatabases ? (
-                <div className="flex items-center gap-2 text-slate-500 py-3">
-                  <div className="w-4 h-4 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
-                  Loading databases...
-                </div>
-              ) : (
-                <select
-                  value={selectedDatabase}
-                  onChange={(e) => setSelectedDatabase(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all cursor-pointer"
-                >
-                  <option value="">Select a database...</option>
-                  {databases.map((db) => (
-                    <option key={db.code} value={db.code}>
-                      {db.code} - {db.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+          <div className="space-y-2">
+            {loadingDatabases ? (
+              <div className="flex items-center gap-2 text-slate-500 py-2 text-xs">
+                <div className="w-3 h-3 border-2 border-coral-200 border-t-coral-500 rounded-full animate-spin" />
+                Loading databases...
+              </div>
+            ) : (
+              <select
+                value={selectedDatabase}
+                onChange={(e) => setSelectedDatabase(e.target.value)}
+                className="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-coral-400"
+              >
+                <option value="">Select database...</option>
+                {databases.map((db) => (
+                  <option key={db.code} value={db.code}>
+                    {db.code} - {db.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
-            {/* Series Selection */}
             {selectedDatabase && (
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">
-                  Series
-                </label>
+              <>
                 {loadingSeries ? (
-                  <div className="flex items-center gap-2 text-slate-500 py-3">
-                    <div className="w-4 h-4 border-2 border-brand-200 border-t-brand-500 rounded-full animate-spin" />
+                  <div className="flex items-center gap-2 text-slate-500 py-2 text-xs">
+                    <div className="w-3 h-3 border-2 border-coral-200 border-t-coral-500 rounded-full animate-spin" />
                     Loading series...
                   </div>
                 ) : (
@@ -172,64 +163,45 @@ export function DataSourceSelector({
                       value={seriesSearch}
                       onChange={(e) => setSeriesSearch(e.target.value)}
                       placeholder="Search series..."
-                      className="w-full px-4 py-2 mb-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 text-sm"
+                      className="w-full px-3 py-1.5 bg-cream-50 border border-cream-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-coral-400"
                     />
-                    <div className="max-h-48 overflow-y-auto bg-slate-50 rounded-xl border border-slate-200">
-                      {filteredSeries.slice(0, 100).map((s) => (
+                    <div className="max-h-32 overflow-y-auto bg-cream-50 rounded-lg border border-cream-200">
+                      {filteredSeries.slice(0, 50).map((s) => (
                         <button
                           key={s.name}
                           type="button"
                           onClick={() => setSelectedSeries(s.name)}
-                          className={`w-full text-left px-4 py-2.5 border-b border-slate-100 last:border-b-0 transition-colors ${selectedSeries === s.name
-                              ? 'bg-brand-50 text-brand-600'
-                              : 'hover:bg-slate-100 text-slate-700'
+                          className={`w-full text-left px-3 py-1.5 border-b border-cream-100 last:border-b-0 transition-colors text-xs ${selectedSeries === s.name
+                              ? 'bg-coral-50 text-coral-600'
+                              : 'hover:bg-cream-100 text-slate-700'
                             }`}
                         >
-                          <div className="font-mono text-sm">{s.name}</div>
-                          <div className="text-xs text-slate-500 truncate">
+                          <div className="font-mono text-[11px]">{s.name}</div>
+                          <div className="text-[10px] text-slate-500 truncate">
                             {s.description}
                           </div>
                         </button>
                       ))}
-                      {filteredSeries.length === 0 && (
-                        <div className="px-4 py-3 text-slate-400 text-sm">
-                          No series found
-                        </div>
-                      )}
-                      {filteredSeries.length > 100 && (
-                        <div className="px-4 py-2 text-slate-400 text-xs text-center">
-                          Showing first 100 results. Use search to filter.
-                        </div>
-                      )}
                     </div>
                   </>
                 )}
-              </div>
-            )}
-          </>
-        )}
 
-        {/* Load Button */}
-        <button
-          type="submit"
-          disabled={
-            loading ||
-            (dataSource === 'yahoo' && !yahooTicker.trim()) ||
-            (dataSource === 'haver' && (!selectedDatabase || !selectedSeries))
-          }
-          className="w-full py-3 bg-gradient-to-r from-brand-500 to-brand-600 text-white font-semibold rounded-xl hover:from-brand-600 hover:to-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-brand-500/25"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Loading...
-            </span>
-          ) : (
-            'Load Data'
-          )}
-        </button>
+                <button
+                  type="submit"
+                  disabled={loading || !selectedDatabase || !selectedSeries}
+                  className="w-full py-2 bg-coral-500 text-white font-medium rounded-lg hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+                  ) : (
+                    'Load Data'
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
 }
-

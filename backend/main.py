@@ -14,6 +14,7 @@ from services import (
     fetch_haver_data,
     search_time_series_event,
     run_backtest,
+    search_critical_events,
 )
 
 # Load environment variables
@@ -54,6 +55,15 @@ class BacktestRequest(BaseModel):
     values: list[float]
     start_date: str
     end_date: str
+
+
+class CriticalEventsRequest(BaseModel):
+    """Request model for critical events search."""
+    
+    ticker: str
+    start_date: str
+    end_date: str
+    num_events: int = 10
 
 
 # Health check
@@ -182,6 +192,29 @@ async def backtest(request: BacktestRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Backtest failed: {str(e)}")
+
+
+# Critical Events endpoint
+@app.post("/api/critical-events")
+async def get_critical_events(request: CriticalEventsRequest):
+    """
+    Search for critical events in a time series.
+    
+    Finds the most important events, news, or developments related to
+    the ticker during the specified time period.
+    """
+    try:
+        result = await search_critical_events(
+            ticker=request.ticker,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            num_events=request.num_events,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Critical events search failed: {str(e)}")
 
 
 if __name__ == "__main__":

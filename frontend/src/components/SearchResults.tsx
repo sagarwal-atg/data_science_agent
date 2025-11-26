@@ -10,13 +10,11 @@ interface SearchResultsProps {
 export function SearchResults({ result, loading, error }: SearchResultsProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-12 h-12 border-3 border-brand-200 border-t-brand-500 rounded-full animate-spin mb-4" />
-          <p className="text-slate-700 text-lg">Searching the web...</p>
-          <p className="text-slate-400 text-sm mt-1">
-            This may take a moment
-          </p>
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-cream-200">
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="w-10 h-10 border-3 border-coral-200 border-t-coral-500 rounded-full animate-spin mb-4" />
+          <p className="text-slate-600 font-medium">Searching the web...</p>
+          <p className="text-slate-400 text-sm mt-1">This may take a moment</p>
         </div>
       </div>
     );
@@ -26,7 +24,7 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
     return (
       <div className="bg-white rounded-2xl p-6 shadow-card border border-coral-200">
         <div className="flex items-start gap-3">
-          <div className="text-2xl">⚠️</div>
+          <div className="text-xl">⚠️</div>
           <div>
             <h3 className="text-coral-600 font-semibold">Search Failed</h3>
             <p className="text-slate-600 mt-1">{error}</p>
@@ -40,7 +38,6 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
     return null;
   }
 
-  // Extract all unique citations
   const allCitations = result.basis.flatMap((b) => b.citations);
   const uniqueCitations = allCitations.filter(
     (citation, index, self) =>
@@ -48,16 +45,14 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
   );
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100 space-y-6">
+    <div className="bg-white rounded-2xl p-5 shadow-card border border-cream-200 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">
-          Analysis Results
-        </h2>
+        <h2 className="text-lg font-semibold text-slate-800">Analysis Results</h2>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-medium ${result.status === 'completed'
-            ? 'bg-accent-500/15 text-accent-600'
-            : 'bg-amber-500/15 text-amber-600'
+          className={`px-2.5 py-1 rounded-lg text-xs font-medium ${result.status === 'completed'
+              ? 'bg-sage-100 text-sage-600'
+              : 'bg-clay-100 text-clay-600'
             }`}
         >
           {result.status}
@@ -65,7 +60,7 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
       </div>
 
       {/* Main Content */}
-      <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl p-5 border border-slate-200">
+      <div className="bg-cream-50 rounded-xl p-4 border border-cream-200">
         <MarkdownRenderer
           content={result.content}
           className="text-slate-700 leading-relaxed"
@@ -76,10 +71,10 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
       {result.basis.map((basis, index) => (
         <div key={index}>
           {basis.reasoning && (
-            <div className="bg-brand-50/50 rounded-xl p-4 border border-brand-100">
+            <div className="bg-sky-50 rounded-xl p-4 border border-sky-100">
               <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
                 <svg
-                  className="w-4 h-4 text-brand-500"
+                  className="w-4 h-4 text-sky-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -107,7 +102,7 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
         <div>
           <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
             <svg
-              className="w-4 h-4 text-amber-500"
+              className="w-4 h-4 text-clay-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -128,11 +123,11 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
                 href={citation.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-brand-300 hover:bg-brand-50/30 transition-all group"
+                className="block p-3 bg-cream-50 rounded-xl border border-cream-200 hover:border-coral-300 hover:bg-coral-50/30 transition-all group"
               >
                 <div className="flex items-center gap-2">
                   <svg
-                    className="w-4 h-4 text-slate-400 group-hover:text-brand-500 transition-colors flex-shrink-0"
+                    className="w-4 h-4 text-slate-400 group-hover:text-coral-500 transition-colors flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -144,7 +139,7 @@ export function SearchResults({ result, loading, error }: SearchResultsProps) {
                       d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                     />
                   </svg>
-                  <span className="text-brand-600 text-sm truncate group-hover:text-brand-700 font-medium">
+                  <span className="text-coral-600 text-sm truncate group-hover:text-coral-700 font-medium">
                     {citation.title || new URL(citation.url).hostname}
                   </span>
                 </div>

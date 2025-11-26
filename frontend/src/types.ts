@@ -108,3 +108,30 @@ export interface BacktestRequest {
   end_date: string;
 }
 
+// Critical Events types
+export interface CriticalEvent {
+  timestamp: string;
+  date: string;
+  summary: string;
+  title?: string;
+  citations?: Array<{
+    url: string;
+    title?: string;
+  }>;
+}
+
+export interface CriticalEventsResult {
+  ticker: string;
+  start_date: string;
+  end_date: string;
+  events: CriticalEvent[];
+  run_id: string;
+}
+
+export interface CriticalEventsRequest {
+  ticker: string;
+  start_date: string;
+  end_date: string;
+  num_events?: number;
+}
+

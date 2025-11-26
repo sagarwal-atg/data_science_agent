@@ -18,14 +18,13 @@ interface BacktestResultsProps {
   result: BacktestResult | null;
   loading: boolean;
   error: string | null;
-  fullTimeSeries?: ChartDataPoint[];  // Full time series data
+  fullTimeSeries?: ChartDataPoint[];
 }
 
-// Custom tooltip for the chart
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-3 shadow-lg ring-1 ring-black/5">
+      <div className="bg-cream-50/95 backdrop-blur-sm border border-cream-300 rounded-xl p-3 shadow-lg">
         <p className="text-slate-500 text-xs font-medium mb-2">{label}</p>
         {payload.map((entry: any, index: number) => (
           entry.value !== null && entry.value !== undefined && (
@@ -47,7 +46,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Format date for display
 const formatDate = (dateStr: string) => {
   try {
     return format(parseISO(dateStr), 'MMM d, yyyy');
@@ -56,7 +54,6 @@ const formatDate = (dateStr: string) => {
   }
 };
 
-// Format axis tick
 const formatXAxis = (timestamp: string) => {
   try {
     return format(parseISO(timestamp), 'MMM d');
@@ -66,14 +63,12 @@ const formatXAxis = (timestamp: string) => {
 };
 
 export function BacktestResults({ result, loading, error, fullTimeSeries }: BacktestResultsProps) {
-  // Create a map of forecast values by date for quick lookup
   const forecastMap = useMemo(() => {
     if (!result || result.windows.length === 0) return new Map<string, number>();
 
     const map = new Map<string, number>();
     result.windows.forEach((window) => {
       window.timestamps.forEach((ts, i) => {
-        // Normalize the date to just the date part
         const dateKey = ts.split('T')[0];
         map.set(dateKey, window.forecast_values[i]);
       });
@@ -82,11 +77,9 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
     return map;
   }, [result]);
 
-  // Prepare chart data combining full time series with forecasts
   const chartData = useMemo(() => {
     if (!result) return [];
 
-    // If we have full time series, use it as the base
     if (fullTimeSeries && fullTimeSeries.length > 0) {
       return fullTimeSeries.map((point) => {
         const dateKey = point.timestamp.split('T')[0];
@@ -95,12 +88,11 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
         return {
           date: point.timestamp,
           actual: point.value,
-          forecast: forecastValue ?? null,  // null if no forecast for this date
+          forecast: forecastValue ?? null,
         };
       });
     }
 
-    // Fallback to just the backtest data
     const data: { date: string; actual: number; forecast: number | null }[] = [];
     result.windows.forEach((window) => {
       window.timestamps.forEach((ts, i) => {
@@ -115,7 +107,6 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
     return data;
   }, [result, fullTimeSeries, forecastMap]);
 
-  // Calculate Y domain for chart
   const yDomain = useMemo(() => {
     if (chartData.length === 0) return [0, 100];
     const allValues = chartData.flatMap((d) => [d.actual, d.forecast]).filter((v): v is number => v !== null);
@@ -126,7 +117,6 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
     return [min - padding, max + padding];
   }, [chartData]);
 
-  // Get backtest region bounds for highlighting
   const backtestRegion = useMemo(() => {
     if (!result || result.windows.length === 0) return null;
 
@@ -141,13 +131,11 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100">
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-12 h-12 border-3 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mb-4" />
-          <p className="text-slate-700 text-lg">Running backtest...</p>
-          <p className="text-slate-400 text-sm mt-1">
-            Generating forecasts with Synthefy
-          </p>
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-cream-200">
+        <div className="flex flex-col items-center justify-center py-10">
+          <div className="w-10 h-10 border-3 border-lavender-300 border-t-lavender-500 rounded-full animate-spin mb-4" />
+          <p className="text-slate-600 font-medium">Running backtest...</p>
+          <p className="text-slate-400 text-sm mt-1">Generating forecasts with Synthefy</p>
         </div>
       </div>
     );
@@ -155,11 +143,11 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
 
   if (error) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-card border border-rose-200">
+      <div className="bg-white rounded-2xl p-6 shadow-card border border-coral-200">
         <div className="flex items-start gap-3">
-          <div className="text-2xl">⚠️</div>
+          <div className="text-xl">⚠️</div>
           <div>
-            <h3 className="text-rose-600 font-semibold">Backtest Failed</h3>
+            <h3 className="text-coral-600 font-semibold">Backtest Failed</h3>
             <p className="text-slate-600 mt-1">{error}</p>
           </div>
         </div>
@@ -171,44 +159,39 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
     return null;
   }
 
-  // Determine MAPE quality indicator
   const getMapeQuality = (mape: number) => {
-    if (mape < 10) return { label: 'Excellent', color: 'text-emerald-600', bg: 'bg-emerald-500/15' };
-    if (mape < 20) return { label: 'Good', color: 'text-green-600', bg: 'bg-green-500/15' };
-    if (mape < 30) return { label: 'Fair', color: 'text-amber-600', bg: 'bg-amber-500/15' };
-    return { label: 'Poor', color: 'text-rose-600', bg: 'bg-rose-500/15' };
+    if (mape < 10) return { label: 'Excellent', color: 'text-sage-600', bg: 'bg-sage-50' };
+    if (mape < 20) return { label: 'Good', color: 'text-sage-500', bg: 'bg-sage-50' };
+    if (mape < 30) return { label: 'Fair', color: 'text-clay-600', bg: 'bg-clay-50' };
+    return { label: 'Poor', color: 'text-coral-600', bg: 'bg-coral-50' };
   };
 
   const mapeQuality = getMapeQuality(result.mape);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-card border border-slate-100 space-y-6">
+    <div className="bg-white rounded-2xl p-5 shadow-card border border-cream-200 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">
-            Backtest Results
-          </h2>
-          <p className="text-slate-500 text-sm mt-0.5">
-            Rolling forecast validation using Synthefy
-          </p>
+          <h2 className="text-lg font-semibold text-slate-800">Backtest Results</h2>
+          <p className="text-slate-500 text-sm mt-0.5">Rolling forecast validation</p>
         </div>
-        <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/15 text-indigo-600">
+        <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-lavender-100 text-lavender-600">
           {result.windows.length} windows
         </span>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* MAPE Card - Main Metric */}
-        <div className={`col-span-2 ${mapeQuality.bg} rounded-xl p-4 border border-slate-100`}>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* MAPE Card */}
+        <div className={`col-span-2 ${mapeQuality.bg} rounded-xl p-4 border border-cream-200`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                MAPE (Mean Absolute Percentage Error)
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">
+                MAPE (Mean Abs % Error)
               </p>
               <div className="flex items-baseline gap-2">
-                <span className={`text-4xl font-mono font-bold ${mapeQuality.color}`}>
+                <span className={`text-3xl font-mono font-bold ${mapeQuality.color}`}>
                   {result.mape.toFixed(2)}%
                 </span>
                 <span className={`text-sm font-semibold ${mapeQuality.color}`}>
@@ -216,107 +199,74 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
                 </span>
               </div>
             </div>
-            <div className="text-5xl opacity-30">📊</div>
+            <div className="text-4xl opacity-30">📊</div>
           </div>
         </div>
 
         {/* MAE */}
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-            MAE
-          </p>
-          <span className="text-2xl font-mono font-bold text-slate-800">
-            {result.mae.toFixed(2)}
-          </span>
+        <div className="bg-cream-50 rounded-xl p-3 border border-cream-200">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">MAE</p>
+          <span className="text-xl font-mono font-bold text-slate-700">{result.mae.toFixed(2)}</span>
         </div>
 
         {/* Total Points */}
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-            Data Points
-          </p>
-          <span className="text-2xl font-mono font-bold text-slate-800">
-            {result.total_points}
-          </span>
+        <div className="bg-cream-50 rounded-xl p-3 border border-cream-200">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-1">Points</p>
+          <span className="text-xl font-mono font-bold text-slate-700">{result.total_points}</span>
         </div>
       </div>
 
-      {/* Configuration Info */}
-      <div className="flex flex-wrap gap-3 text-sm">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-          <span className="text-slate-500">Cutoff:</span>
-          <span className="font-mono font-medium text-slate-700">
-            {formatDate(result.cutoff_date)}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-          <span className="text-slate-500">Forecast Window:</span>
-          <span className="font-mono font-medium text-slate-700">
-            {result.forecast_window}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-          <span className="text-slate-500">Stride:</span>
-          <span className="font-mono font-medium text-slate-700">
-            {result.stride}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-          <span className="text-slate-500">Frequency:</span>
-          <span className="font-mono font-medium text-slate-700 capitalize">
-            {result.frequency}
-          </span>
-        </div>
+      {/* Config */}
+      <div className="flex flex-wrap gap-2 text-xs">
+        {[
+          { label: 'Cutoff', value: formatDate(result.cutoff_date) },
+          { label: 'Window', value: result.forecast_window },
+          { label: 'Stride', value: result.stride },
+          { label: 'Freq', value: result.frequency },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center gap-1.5 px-2.5 py-1 bg-cream-100 rounded-lg">
+            <span className="text-slate-500">{item.label}:</span>
+            <span className="font-mono font-medium text-slate-700">{item.value}</span>
+          </div>
+        ))}
       </div>
 
       {/* Chart */}
       {chartData.length > 0 && (
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl p-4 border border-slate-200">
-          <h4 className="text-sm font-medium text-slate-700 mb-4 flex items-center gap-2">
-            <svg
-              className="w-4 h-4 text-indigo-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-              />
+        <div className="bg-cream-50 rounded-xl p-4 border border-cream-200">
+          <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-lavender-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
             </svg>
-            {fullTimeSeries ? 'Full Time Series with Backtest' : 'Actual vs Forecast'}
+            Actual vs Forecast
           </h4>
-          <div className="h-72">
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E3E3DF" vertical={false} />
 
-                {/* Highlight the backtest region */}
                 {backtestRegion && (
                   <ReferenceArea
                     x1={backtestRegion.start}
                     x2={backtestRegion.end}
-                    fill="#4f46e5"
-                    fillOpacity={0.1}
-                    stroke="#4f46e5"
-                    strokeOpacity={0.3}
+                    fill="#9A7BB4"
+                    fillOpacity={0.08}
+                    stroke="#9A7BB4"
+                    strokeOpacity={0.2}
                     strokeDasharray="3 3"
                   />
                 )}
 
-                {/* Cutoff line */}
                 {backtestRegion && (
                   <ReferenceLine
                     x={backtestRegion.start}
-                    stroke="#6366f1"
+                    stroke="#9A7BB4"
                     strokeDasharray="5 5"
                     strokeWidth={2}
                     label={{
                       value: 'Cutoff',
                       position: 'top',
-                      fill: '#6366f1',
+                      fill: '#9A7BB4',
                       fontSize: 10,
                       fontWeight: 'bold',
                     }}
@@ -326,80 +276,64 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
                 <XAxis
                   dataKey="date"
                   tickFormatter={formatXAxis}
-                  stroke="#e2e8f0"
-                  tick={{ fill: '#94a3b8', fontSize: 10 }}
+                  stroke="#E3E3DF"
+                  tick={{ fill: '#A8A89E', fontSize: 10 }}
                   tickLine={false}
-                  axisLine={{ stroke: '#e2e8f0' }}
+                  axisLine={{ stroke: '#E3E3DF' }}
                   minTickGap={50}
                 />
                 <YAxis
                   domain={yDomain}
-                  stroke="#e2e8f0"
-                  tick={{ fill: '#94a3b8', fontSize: 10 }}
+                  stroke="#E3E3DF"
+                  tick={{ fill: '#A8A89E', fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  width={60}
+                  width={55}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
                   verticalAlign="top"
-                  height={36}
+                  height={32}
                   iconType="line"
-                  wrapperStyle={{ fontSize: '12px' }}
+                  wrapperStyle={{ fontSize: '11px' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="actual"
-                  name="Ground Truth"
-                  stroke="#f59e0b"
+                  name="Actual"
+                  stroke="#E5684A"
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#f59e0b' }}
+                  activeDot={{ r: 4, fill: '#E5684A' }}
                   connectNulls
                 />
                 <Line
                   type="monotone"
                   dataKey="forecast"
                   name="Forecast"
-                  stroke="#4f46e5"
+                  stroke="#9A7BB4"
                   strokeWidth={2.5}
                   dot={false}
-                  activeDot={{ r: 4, fill: '#4f46e5' }}
+                  activeDot={{ r: 4, fill: '#9A7BB4' }}
                   connectNulls
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          {fullTimeSeries && (
-            <p className="text-xs text-slate-400 mt-2 text-center">
-              Shaded region shows the backtest period • Dashed line marks the cutoff date
-            </p>
-          )}
         </div>
       )}
 
-      {/* Window Details */}
+      {/* Windows */}
       {result.windows.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-            <svg
-              className="w-4 h-4 text-purple-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 10h16M4 14h16M4 18h16"
-              />
+          <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+            <svg className="w-4 h-4 text-lavender-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
-            Forecast Windows ({result.windows.length})
+            Windows ({result.windows.length})
           </h4>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-1.5 max-h-40 overflow-y-auto">
             {result.windows.map((window, index) => {
-              // Calculate window-specific MAPE
               const windowErrors = window.actual_values.map((a, i) =>
                 a !== 0 ? Math.abs((a - window.forecast_values[i]) / a) * 100 : 0
               );
@@ -408,27 +342,21 @@ export function BacktestResults({ result, loading, error, fullTimeSeries }: Back
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100"
+                  className="flex items-center justify-between p-2.5 bg-cream-50 rounded-lg border border-cream-200"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 flex items-center justify-center bg-indigo-100 text-indigo-600 text-xs font-bold rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 flex items-center justify-center bg-lavender-100 text-lavender-600 text-[10px] font-bold rounded">
                       {index + 1}
                     </span>
                     <div>
-                      <p className="text-sm font-mono text-slate-700">
+                      <p className="text-xs font-mono text-slate-700">
                         {formatDate(window.target_start)} → {formatDate(window.target_end)}
-                      </p>
-                      <p className="text-xs text-slate-400">
-                        History: {formatDate(window.history_start)} to {formatDate(window.history_end)}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-sm font-mono font-bold ${getMapeQuality(windowMape).color}`}>
-                      {windowMape.toFixed(1)}%
-                    </span>
-                    <p className="text-xs text-slate-400">MAPE</p>
-                  </div>
+                  <span className={`text-xs font-mono font-bold ${getMapeQuality(windowMape).color}`}>
+                    {windowMape.toFixed(1)}%
+                  </span>
                 </div>
               );
             })}
