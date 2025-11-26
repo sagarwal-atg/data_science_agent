@@ -1,21 +1,31 @@
 import { useState, useEffect } from 'react';
-import type { DataSource, HaverDatabase, HaverSeries } from '../types';
-import { fetchHaverDatabases, fetchHaverSeries } from '../api';
+import type { DataSource, HaverDatabase, HaverSeries, CryptoSymbol, ForexPair } from '../types';
+import { 
+  fetchHaverDatabases, 
+  fetchHaverSeries, 
+  fetchPopularCryptos, 
+  fetchPopularForexPairs 
+} from '../api';
 
 interface DataSourceSelectorProps {
   onLoadYahoo: (ticker: string) => void;
   onLoadHaver: (database: string, series: string) => void;
+  onLoadCrypto: (ticker: string) => void;
+  onLoadForex: (pair: string) => void;
   loading: boolean;
 }
 
 export function DataSourceSelector({
   onLoadYahoo,
   onLoadHaver,
+  onLoadCrypto,
+  onLoadForex,
   loading,
 }: DataSourceSelectorProps) {
   const [dataSource, setDataSource] = useState<DataSource>('yahoo');
   const [yahooTicker, setYahooTicker] = useState('NVDA');
 
+  // Haver state
   const [databases, setDatabases] = useState<HaverDatabase[]>([]);
   const [selectedDatabase, setSelectedDatabase] = useState<string>('');
   const [series, setSeries] = useState<HaverSeries[]>([]);
@@ -24,9 +34,25 @@ export function DataSourceSelector({
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [seriesSearch, setSeriesSearch] = useState('');
 
+  // Crypto state
+  const [cryptos, setCryptos] = useState<CryptoSymbol[]>([]);
+  const [selectedCrypto, setSelectedCrypto] = useState<string>('BTC');
+  const [loadingCryptos, setLoadingCryptos] = useState(false);
+
+  // Forex state
+  const [forexPairs, setForexPairs] = useState<ForexPair[]>([]);
+  const [selectedForexPair, setSelectedForexPair] = useState<string>('EURUSD');
+  const [loadingForexPairs, setLoadingForexPairs] = useState(false);
+
   useEffect(() => {
     if (dataSource === 'haver' && databases.length === 0) {
       loadDatabases();
+    }
+    if (dataSource === 'crypto' && cryptos.length === 0) {
+      loadCryptos();
+    }
+    if (dataSource === 'forex' && forexPairs.length === 0) {
+      loadForexPairs();
     }
   }, [dataSource]);
 
@@ -62,15 +88,47 @@ export function DataSourceSelector({
     }
   };
 
+  const loadCryptos = async () => {
+    setLoadingCryptos(true);
+    try {
+      const cryptoList = await fetchPopularCryptos();
+      setCryptos(cryptoList);
+    } catch (err) {
+      console.error('Failed to load cryptos:', err);
+    } finally {
+      setLoadingCryptos(false);
+    }
+  };
+
+  const loadForexPairs = async () => {
+    setLoadingForexPairs(true);
+    try {
+      const pairs = await fetchPopularForexPairs();
+      setForexPairs(pairs);
+    } catch (err) {
+      console.error('Failed to load forex pairs:', err);
+    } finally {
+      setLoadingForexPairs(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (dataSource === 'yahoo') {
       if (yahooTicker.trim()) {
         onLoadYahoo(yahooTicker.trim().toUpperCase());
       }
-    } else {
+    } else if (dataSource === 'haver') {
       if (selectedDatabase && selectedSeries) {
         onLoadHaver(selectedDatabase, selectedSeries);
+      }
+    } else if (dataSource === 'crypto') {
+      if (selectedCrypto) {
+        onLoadCrypto(selectedCrypto);
+      }
+    } else if (dataSource === 'forex') {
+      if (selectedForexPair) {
+        onLoadForex(selectedForexPair);
       }
     }
   };
@@ -93,6 +151,24 @@ export function DataSourceSelector({
             }`}
         >
           Yahoo
+        </button>
+        <button
+          onClick={() => setDataSource('crypto')}
+          className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${dataSource === 'crypto'
+              ? 'bg-white text-slate-800 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+            }`}
+        >
+          Crypto
+        </button>
+        <button
+          onClick={() => setDataSource('forex')}
+          className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${dataSource === 'forex'
+              ? 'bg-white text-slate-800 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+            }`}
+        >
+          Forex
         </button>
         <button
           onClick={() => setDataSource('haver')}
@@ -127,7 +203,71 @@ export function DataSourceSelector({
               )}
             </button>
           </div>
-        ) : (
+        ) : dataSource === 'crypto' ? (
+          <div className="space-y-2">
+            {loadingCryptos ? (
+              <div className="flex items-center gap-2 text-slate-500 py-2 text-xs">
+                <div className="w-3 h-3 border-2 border-coral-200 border-t-coral-500 rounded-full animate-spin" />
+                Loading cryptocurrencies...
+              </div>
+            ) : (
+              <select
+                value={selectedCrypto}
+                onChange={(e) => setSelectedCrypto(e.target.value)}
+                className="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-coral-400"
+              >
+                {cryptos.map((crypto) => (
+                  <option key={crypto.symbol} value={crypto.symbol}>
+                    {crypto.symbol} ({crypto.ticker})
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="submit"
+              disabled={loading || !selectedCrypto}
+              className="w-full py-2 bg-coral-500 text-white font-medium rounded-lg hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+              ) : (
+                'Load Data'
+              )}
+            </button>
+          </div>
+        ) : dataSource === 'forex' ? (
+          <div className="space-y-2">
+            {loadingForexPairs ? (
+              <div className="flex items-center gap-2 text-slate-500 py-2 text-xs">
+                <div className="w-3 h-3 border-2 border-coral-200 border-t-coral-500 rounded-full animate-spin" />
+                Loading forex pairs...
+              </div>
+            ) : (
+              <select
+                value={selectedForexPair}
+                onChange={(e) => setSelectedForexPair(e.target.value)}
+                className="w-full px-3 py-2 bg-cream-50 border border-cream-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-coral-400"
+              >
+                {forexPairs.map((pair) => (
+                  <option key={pair.pair} value={pair.pair}>
+                    {pair.base}/{pair.quote} ({pair.pair})
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="submit"
+              disabled={loading || !selectedForexPair}
+              className="w-full py-2 bg-coral-500 text-white font-medium rounded-lg hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto" />
+              ) : (
+                'Load Data'
+              )}
+            </button>
+          </div>
+        ) : dataSource === 'haver' ? (
           <div className="space-y-2">
             {loadingDatabases ? (
               <div className="flex items-center gap-2 text-slate-500 py-2 text-xs">
@@ -200,7 +340,7 @@ export function DataSourceSelector({
               </>
             )}
           </div>
-        )}
+        ) : null}
       </form>
     </div>
   );

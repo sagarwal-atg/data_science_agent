@@ -22,6 +22,8 @@ function App() {
     selectedRange,
     loadYahooData,
     loadHaverData,
+    loadCryptoData,
+    loadForexData,
     setSelectedRange,
   } = useTimeSeriesData();
 
@@ -374,6 +376,8 @@ function App() {
           <DataSourceSelector
             onLoadYahoo={loadYahooData}
             onLoadHaver={loadHaverData}
+            onLoadCrypto={loadCryptoData}
+            onLoadForex={loadForexData}
             loading={dataLoading}
           />
 

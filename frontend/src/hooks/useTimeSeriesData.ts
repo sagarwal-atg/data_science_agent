@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import type { DataSource, ChartDataPoint, DateRange } from '../types';
-import { fetchYahooData, fetchHaverData } from '../api';
+import { fetchYahooData, fetchHaverData, fetchCryptoData, fetchForexData } from '../api';
 
 interface UseTimeSeriesDataReturn {
   data: ChartDataPoint[];
@@ -12,6 +12,8 @@ interface UseTimeSeriesDataReturn {
   selectedRange: DateRange | null;
   loadYahooData: (ticker: string) => Promise<void>;
   loadHaverData: (database: string, series: string) => Promise<void>;
+  loadCryptoData: (ticker: string) => Promise<void>;
+  loadForexData: (pair: string) => Promise<void>;
   setSelectedRange: (range: DateRange | null) => void;
 }
 
@@ -109,6 +111,54 @@ export function useTimeSeriesData(): UseTimeSeriesDataReturn {
     [transformData]
   );
 
+  const loadCryptoData = useCallback(
+    async (tickerSymbol: string) => {
+      setLoading(true);
+      setError(null);
+      setSelectedRange(null);
+
+      try {
+        const result = await fetchCryptoData(tickerSymbol);
+        const chartData = transformData(result.timestamps, result.values);
+        setData(chartData);
+        setTicker(result.ticker);
+        setCurrency(result.currency);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch data';
+        setError(message);
+        setData([]);
+        setCurrency(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [transformData]
+  );
+
+  const loadForexData = useCallback(
+    async (pair: string) => {
+      setLoading(true);
+      setError(null);
+      setSelectedRange(null);
+
+      try {
+        const result = await fetchForexData(pair);
+        const chartData = transformData(result.timestamps, result.values);
+        setData(chartData);
+        setTicker(`${result.base_currency}/${result.quote_currency}`);
+        setCurrency(result.quote_currency);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch data';
+        setError(message);
+        setData([]);
+        setCurrency(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [transformData]
+  );
+
   return {
     data,
     loading,
@@ -118,6 +168,8 @@ export function useTimeSeriesData(): UseTimeSeriesDataReturn {
     selectedRange,
     loadYahooData,
     loadHaverData,
+    loadCryptoData,
+    loadForexData,
     setSelectedRange,
   };
 }

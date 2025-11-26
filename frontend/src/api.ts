@@ -4,6 +4,10 @@ import type {
   HaverDatabase,
   HaverSeries,
   HaverTimeSeriesData,
+  CryptoSymbol,
+  CryptoTimeSeriesData,
+  ForexPair,
+  ForexTimeSeriesData,
   SearchResult,
   SearchRequest,
   BacktestResult,
@@ -51,6 +55,50 @@ export async function fetchHaverData(
   const response = await axios.get<HaverTimeSeriesData>(
     `${API_BASE}/haver/${database}/${series}`
   );
+  return response.data;
+}
+
+// Crypto API
+export async function fetchPopularCryptos(): Promise<CryptoSymbol[]> {
+  const response = await axios.get<{ cryptos: CryptoSymbol[] }>(
+    `${API_BASE}/crypto/popular`
+  );
+  return response.data.cryptos;
+}
+
+export async function fetchCryptoData(
+  ticker: string,
+  startDate?: string,
+  endDate?: string
+): Promise<CryptoTimeSeriesData> {
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+
+  const url = `${API_BASE}/crypto/${ticker}${params.toString() ? `?${params}` : ''}`;
+  const response = await axios.get<CryptoTimeSeriesData>(url);
+  return response.data;
+}
+
+// Forex API
+export async function fetchPopularForexPairs(): Promise<ForexPair[]> {
+  const response = await axios.get<{ pairs: ForexPair[] }>(
+    `${API_BASE}/forex/popular`
+  );
+  return response.data.pairs;
+}
+
+export async function fetchForexData(
+  pair: string,
+  startDate?: string,
+  endDate?: string
+): Promise<ForexTimeSeriesData> {
+  const params = new URLSearchParams();
+  if (startDate) params.append('start_date', startDate);
+  if (endDate) params.append('end_date', endDate);
+
+  const url = `${API_BASE}/forex/${pair}${params.toString() ? `?${params}` : ''}`;
+  const response = await axios.get<ForexTimeSeriesData>(url);
   return response.data;
 }
 

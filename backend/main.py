@@ -12,6 +12,10 @@ from services import (
     list_databases,
     list_series,
     fetch_haver_data,
+    fetch_crypto_data,
+    list_popular_cryptos,
+    fetch_forex_data,
+    list_popular_forex_pairs,
     search_time_series_event,
     run_backtest,
     search_critical_events,
@@ -89,6 +93,80 @@ async def get_yahoo_data(
     """
     try:
         data = await fetch_yahoo_data(ticker, start_date, end_date)
+        return data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch data: {str(e)}")
+
+
+# Crypto endpoints
+@app.get("/api/crypto/popular")
+async def get_popular_cryptos():
+    """
+    List popular cryptocurrencies.
+    
+    Returns a list of popular crypto symbols.
+    """
+    try:
+        cryptos = await list_popular_cryptos()
+        return {"cryptos": cryptos}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list cryptos: {str(e)}")
+
+
+@app.get("/api/crypto/{ticker}")
+async def get_crypto_data(
+    ticker: str,
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+):
+    """
+    Fetch cryptocurrency data from Yahoo Finance.
+    
+    - **ticker**: Crypto symbol (e.g., BTC, ETH, BTC-USD)
+    - **start_date**: Optional start date in YYYY-MM-DD format
+    - **end_date**: Optional end date in YYYY-MM-DD format
+    """
+    try:
+        data = await fetch_crypto_data(ticker, start_date, end_date)
+        return data
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch data: {str(e)}")
+
+
+# Forex endpoints
+@app.get("/api/forex/popular")
+async def get_popular_forex_pairs():
+    """
+    List popular forex pairs.
+    
+    Returns a list of popular currency pairs.
+    """
+    try:
+        pairs = await list_popular_forex_pairs()
+        return {"pairs": pairs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list forex pairs: {str(e)}")
+
+
+@app.get("/api/forex/{pair}")
+async def get_forex_data(
+    pair: str,
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+):
+    """
+    Fetch forex data from Yahoo Finance.
+    
+    - **pair**: Forex pair (e.g., EURUSD, EUR/USD, GBPUSD)
+    - **start_date**: Optional start date in YYYY-MM-DD format
+    - **end_date**: Optional end date in YYYY-MM-DD format
+    """
+    try:
+        data = await fetch_forex_data(pair, start_date, end_date)
         return data
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

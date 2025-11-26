@@ -9,6 +9,16 @@ from .haver_service import (
     HaverSeries,
     HaverTimeSeriesData,
 )
+from .crypto_service import (
+    fetch_crypto_data,
+    list_popular_cryptos,
+    CryptoTimeSeriesData,
+)
+from .forex_service import (
+    fetch_forex_data,
+    list_popular_forex_pairs,
+    ForexTimeSeriesData,
+)
 from .parallel_search import search_time_series_event, SearchResult
 from .backtest_service import run_backtest, BacktestResult, BacktestWindow
 from .critical_events_service import search_critical_events, CriticalEventsResult
@@ -22,6 +32,12 @@ __all__ = [
     "HaverDatabase",
     "HaverSeries",
     "HaverTimeSeriesData",
+    "fetch_crypto_data",
+    "list_popular_cryptos",
+    "CryptoTimeSeriesData",
+    "fetch_forex_data",
+    "list_popular_forex_pairs",
+    "ForexTimeSeriesData",
     "search_time_series_event",
     "SearchResult",
     "run_backtest",

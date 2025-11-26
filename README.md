@@ -1,14 +1,18 @@
 # Time Series Dashboard
 
-A modern web application for analyzing financial and macroeconomic time series data with AI-powered insights. Load data from Yahoo Finance or Haver Analytics, select a time period of interest, and use AI-powered web search to understand what caused price movements.
+A modern web application for analyzing financial and macroeconomic time series data with AI-powered insights. Load data from multiple sources including Yahoo Finance, Cryptocurrency, Forex, and Haver Analytics, select a time period of interest, and use AI-powered web search to understand what caused price movements.
 
 ## Features
 
 - **Yahoo Finance Integration**: Load any stock ticker data (e.g., NVDA, AAPL, MSFT)
+- **Cryptocurrency Data**: Access popular cryptocurrencies (BTC, ETH, SOL, etc.) with real-time pricing
+- **Forex Data**: Analyze foreign exchange rates for major currency pairs (EUR/USD, GBP/USD, etc.)
 - **Haver Analytics Integration**: Browse databases and series hierarchically
 - **Interactive Charts**: Visualize time series with Recharts
 - **Range Selection**: Use the brush selector to highlight a period of interest
 - **AI-Powered Analysis**: Search for explanations of price movements using Parallel API
+- **Critical Events Detection**: Find important events that influenced price movements
+- **Backtest & Forecast**: Use Synthefy to forecast future values and backtest predictions
 
 ## Architecture
 
@@ -17,8 +21,12 @@ A modern web application for analyzing financial and macroeconomic time series d
 │   ├── main.py              # FastAPI app with endpoints
 │   ├── services/
 │   │   ├── yahoo_finance.py # yfinance data fetching
+│   │   ├── crypto_service.py # Cryptocurrency data
+│   │   ├── forex_service.py  # Forex data
 │   │   ├── haver_service.py # Haver Analytics integration
-│   │   └── parallel_search.py # Parallel API for web search
+│   │   ├── parallel_search.py # Parallel API for web search
+│   │   ├── backtest_service.py # Synthefy backtesting
+│   │   └── critical_events_service.py # Critical events detection
 │   └── requirements.txt
 ├── frontend/                 # React + TypeScript
 │   ├── src/
@@ -114,15 +122,16 @@ cd frontend && npm run dev
 
 2. **Select Data Source**:
    - **Yahoo Finance**: Enter a stock ticker (e.g., `NVDA`, `AAPL`, `TSLA`)
+   - **Crypto**: Select from popular cryptocurrencies (BTC, ETH, SOL, etc.)
+   - **Forex**: Select from major currency pairs (EUR/USD, GBP/USD, etc.)
    - **Haver Analytics**: Browse databases → Select a database → Select a series
 
 3. **Load Data**: Click "Load Data" to fetch and display the time series
 
-4. **Select a Time Range**: Use the brush selector at the bottom of the chart to highlight a period you want to analyze
-
-5. **Ask a Question**: Enter your question about the price movement (e.g., "Why did the stock increase during this period?")
-
-6. **Get AI-Powered Insights**: Click "Search for Explanation" to get AI-analyzed results with citations
+4. **Analyze Your Data** with three powerful tools:
+   - **Explain Tab**: Select a time range and ask questions about price movements (e.g., "Why did the price increase?")
+   - **Events Tab**: Find critical events that influenced the asset during the visible time period
+   - **Forecast Tab**: Select a target period and use AI to forecast and backtest predictions with MAPE metrics
 
 ## API Endpoints
 
@@ -130,16 +139,23 @@ cd frontend && npm run dev
 |----------|--------|-------------|
 | `/api/health` | GET | Health check |
 | `/api/yahoo/{ticker}` | GET | Fetch Yahoo Finance data |
+| `/api/crypto/popular` | GET | List popular cryptocurrencies |
+| `/api/crypto/{ticker}` | GET | Fetch cryptocurrency data |
+| `/api/forex/popular` | GET | List popular forex pairs |
+| `/api/forex/{pair}` | GET | Fetch forex exchange rate data |
 | `/api/haver/databases` | GET | List Haver databases |
 | `/api/haver/series/{database}` | GET | List series in a database |
 | `/api/haver/{database}/{series}` | GET | Fetch Haver time series |
 | `/api/search` | POST | AI-powered event search |
+| `/api/backtest` | POST | Run backtest using Synthefy |
+| `/api/critical-events` | POST | Find critical events |
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `PARALLEL_API_KEY` | Yes | API key for Parallel web search |
+| `PARALLEL_API_KEY` | Yes | API key for Parallel web search and critical events |
+| `SYNTHEFY_API_KEY` | Yes | API key for Synthefy backtesting and forecasting |
 | `HAVER_API_KEY` | No | API key for Haver Analytics (needed for macro data) |
 
 ## Tech Stack

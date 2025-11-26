@@ -1,5 +1,5 @@
 // Data source types
-export type DataSource = 'yahoo' | 'haver';
+export type DataSource = 'yahoo' | 'haver' | 'crypto' | 'forex';
 
 // Time series data
 export interface TimeSeriesData {
@@ -30,6 +30,38 @@ export interface HaverTimeSeriesData {
   currency?: string;
   timestamps: string[];
   values: number[];
+}
+
+// Crypto types
+export interface CryptoSymbol {
+  symbol: string;
+  ticker: string;
+  name: string;
+}
+
+export interface CryptoTimeSeriesData {
+  ticker: string;
+  timestamps: string[];
+  values: number[];
+  data_type: string;
+  currency: string;
+}
+
+// Forex types
+export interface ForexPair {
+  pair: string;
+  ticker: string;
+  base: string;
+  quote: string;
+}
+
+export interface ForexTimeSeriesData {
+  ticker: string;
+  base_currency: string;
+  quote_currency: string;
+  timestamps: string[];
+  values: number[];
+  data_type: string;
 }
 
 // Chart data point
