@@ -1,0 +1,104 @@
+sp500:
+  source: wikipedia
+  url: https://en.wikipedia.org/wiki/List_of_S%26P_500_companies
+  table_index: 0
+  symbol_column: Symbol
+  name_column: Security
+  start_date: 2021-01-01
+  end_date: 2025-12-31
+  database: sp500_db
+
+crypto:
+  tickers:
+    - BTC-USD
+    - ETH-USD
+    - USDT-USD
+    - BNB-USD
+    - SOL-USD
+    - XRP-USD
+    - USDC-USD
+    - ADA-USD
+    - DOGE-USD
+    - TRX-USD
+    - AVAX-USD
+    - DOT-USD
+    - MATIC-USD
+    - LINK-USD
+    - UNI-USD
+  start_date: 2021-01-01
+  end_date: 2025-12-31
+  database: crypto_db
+
+forex:
+  pairs:
+    - EURUSD=X
+    - GBPUSD=X
+    - USDJPY=X
+    - AUDUSD=X
+    - USDCAD=X
+    - USDCHF=X
+    - NZDUSD=X
+    - EURGBP=X
+    - EURJPY=X
+    - GBPJPY=X
+    - AUDJPY=X
+    - EURAUD=X
+    - EURCHF=X
+    - GBPAUD=X
+    - GBPCAD=X
+  start_date: 2021-01-01
+  end_date: 2025-12-31
+  database: forex_db
+
+macro:
+  provider: world_bank
+  indicator: NY.GDP.MKTP.CD
+  country_codes:
+    - name: United States
+      iso2: US
+      iso3: USA
+    - name: China
+      iso2: CN
+      iso3: CHN
+    - name: Japan
+      iso2: JP
+      iso3: JPN
+    - name: Germany
+      iso2: DE
+      iso3: DEU
+    - name: India
+      iso2: IN
+      iso3: IND
+    - name: United Kingdom
+      iso2: GB
+      iso3: GBR
+    - name: France
+      iso2: FR
+      iso3: FRA
+    - name: Italy
+      iso2: IT
+      iso3: ITA
+    - name: Brazil
+      iso2: BR
+      iso3: BRA
+    - name: Canada
+      iso2: CA
+      iso3: CAN
+    - name: Russia
+      iso2: RU
+      iso3: RUS
+    - name: South Korea
+      iso2: KR
+      iso3: KOR
+    - name: Australia
+      iso2: AU
+      iso3: AUS
+    - name: Spain
+      iso2: ES
+      iso3: ESP
+    - name: Mexico
+      iso2: MX
+      iso3: MEX
+  start_year: 2021
+  end_year: 2025
+  database: macro_db

@@ -14,6 +14,9 @@ import type {
   BacktestRequest,
   CriticalEventsResult,
   CriticalEventsRequest,
+  StoredBacktestSummary,
+  StoredBacktestDetail,
+  AssetClass,
 } from './types';
 
 const API_BASE = '/api';
@@ -123,6 +126,30 @@ export async function searchCriticalEvents(
   request: CriticalEventsRequest
 ): Promise<CriticalEventsResult> {
   const response = await axios.post<CriticalEventsResult>(`${API_BASE}/critical-events`, request);
+  return response.data;
+}
+
+// Stored backtests API
+export async function fetchStoredBacktests(
+  assetClass: AssetClass,
+  limit = 50
+): Promise<StoredBacktestSummary[]> {
+  const response = await axios.get<{
+    asset_class: string;
+    count: number;
+    results: StoredBacktestSummary[];
+  }>(`${API_BASE}/backtests/${assetClass}?limit=${limit}`);
+  return response.data.results;
+}
+
+export async function fetchStoredBacktestDetail(
+  assetClass: AssetClass,
+  symbol: string,
+  windowLimit = 500
+): Promise<StoredBacktestDetail> {
+  const response = await axios.get<StoredBacktestDetail>(
+    `${API_BASE}/backtests/${assetClass}/${symbol}?window_limit=${windowLimit}`
+  );
   return response.data;
 }
 

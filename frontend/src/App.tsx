@@ -5,12 +5,13 @@ import {
   SearchResults,
   BacktestResults,
   CriticalEventsList,
+  PerformanceDashboard,
 } from './components';
 import { useTimeSeriesData } from './hooks/useTimeSeriesData';
 import { searchTimeSeriesEvent, runBacktest, searchCriticalEvents } from './api';
 import type { SearchResult, DateRange, BacktestResult, CriticalEventsResult } from './types';
 
-type AnalysisTab = 'explain' | 'events' | 'backtest';
+type AnalysisTab = 'explain' | 'events' | 'backtest' | 'performance';
 
 function App() {
   const {
@@ -351,6 +352,19 @@ function App() {
             )}
           </div>
         );
+
+      case 'performance':
+        return (
+          <div className="space-y-2 text-sm text-slate-600">
+            <p>
+              Explore the pipeline&apos;s historical forecasting accuracy across S&P 500 stocks,
+              crypto, forex, and macro series in the main panel.
+            </p>
+            <p className="text-xs text-slate-400">
+              Use the tabs above to switch between on-demand analysis and stored performance.
+            </p>
+          </div>
+        );
     }
   };
 
@@ -382,43 +396,46 @@ function App() {
           />
 
           {/* Analysis Section */}
-          {ticker && (
-            <div className="space-y-3">
-              {/* Ticker Display */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-cream-200">
-                <div className="w-2 h-2 rounded-full bg-sage-400"></div>
+          <div className="space-y-3">
+            {/* Ticker Display */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-cream-200">
+              <div className={`w-2 h-2 rounded-full ${ticker ? 'bg-sage-400' : 'bg-cream-300'}`}></div>
+              {ticker ? (
                 <span className="text-sm font-semibold text-slate-700">{ticker}</span>
-              </div>
+              ) : (
+                <span className="text-xs text-slate-500">Load a ticker to enable Explain, Events, and Forecast tools</span>
+              )}
+            </div>
 
-              {/* Tabs */}
-              <div className="bg-cream-200 p-1 rounded-xl">
-                <div className="grid grid-cols-3 gap-1">
-                  {[
-                    { id: 'explain', label: 'Explain', icon: '💡' },
-                    { id: 'events', label: 'Events', icon: '📅' },
-                    { id: 'backtest', label: 'Forecast', icon: '📈' },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as AnalysisTab)}
-                      className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${activeTab === tab.id
-                          ? 'bg-white text-slate-800 shadow-sm'
-                          : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                        }`}
-                    >
-                      <span className="mr-1">{tab.icon}</span>
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tab Content */}
-              <div className="bg-white rounded-xl p-3 border border-cream-200">
-                {renderTabContent()}
+            {/* Tabs */}
+            <div className="bg-cream-200 p-1 rounded-xl">
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { id: 'explain', label: 'Explain', icon: '💡' },
+                  { id: 'events', label: 'Events', icon: '📅' },
+                  { id: 'backtest', label: 'Forecast', icon: '📈' },
+                  { id: 'performance', label: 'Performance', icon: '📊' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as AnalysisTab)}
+                    className={`px-2 py-2 rounded-lg text-xs font-medium transition-all ${activeTab === tab.id
+                        ? 'bg-white text-slate-800 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                      }`}
+                  >
+                    <span className="mr-1">{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
+
+            {/* Tab Content */}
+            <div className="bg-white rounded-xl p-3 border border-cream-200">
+              {renderTabContent()}
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -491,6 +508,12 @@ function App() {
                 showMarkers={showEventMarkers}
                 onToggleMarkers={setShowEventMarkers}
               />
+            </div>
+          )}
+
+          {activeTab === 'performance' && (
+            <div className="animate-fadeIn">
+              <PerformanceDashboard />
             </div>
           )}
         </div>

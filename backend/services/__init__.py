@@ -1,5 +1,12 @@
 """Backend services."""
 
+from config import (
+    load_asset_config,
+    get_sp500_settings,
+    get_crypto_tickers,
+    get_forex_pairs,
+    get_macro_countries,
+)
 from .yahoo_finance import fetch_yahoo_data, TimeSeriesData
 from .haver_service import (
     list_databases,
@@ -22,10 +29,25 @@ from .forex_service import (
 from .parallel_search import search_time_series_event, SearchResult
 from .backtest_service import run_backtest, BacktestResult, BacktestWindow
 from .critical_events_service import search_critical_events, CriticalEventsResult
+from .macro_service import (
+    fetch_gdp_series,
+    list_top_gdp_countries,
+    MacroTimeSeriesData,
+)
+from .sp500_service import (
+    fetch_sp500_constituents,
+    list_sp500_tickers,
+    SP500Constituent,
+)
 
 __all__ = [
     "fetch_yahoo_data",
     "TimeSeriesData",
+    "load_asset_config",
+    "get_sp500_settings",
+    "get_crypto_tickers",
+    "get_forex_pairs",
+    "get_macro_countries",
     "list_databases",
     "list_series",
     "fetch_haver_data",
@@ -45,5 +67,11 @@ __all__ = [
     "BacktestWindow",
     "search_critical_events",
     "CriticalEventsResult",
+    "fetch_gdp_series",
+    "list_top_gdp_countries",
+    "MacroTimeSeriesData",
+    "fetch_sp500_constituents",
+    "list_sp500_tickers",
+    "SP500Constituent",
 ]
 

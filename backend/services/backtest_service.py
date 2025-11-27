@@ -10,7 +10,7 @@ import pandas as pd
 from pydantic import BaseModel
 from synthefy.data_models import ForecastV2Request
 from synthefy.api_client import SynthefyAsyncAPIClient
-
+from pandas.tseries.frequencies import to_offset
 
 class BacktestWindow(BaseModel):
     """A single backtest window result."""
@@ -125,7 +125,6 @@ def calculate_mape(actual: List[float], forecast: List[float]) -> float:
     print(f"DEBUG [calculate_mape]: MAPE = {mape:.2f}% from {len(errors)} non-zero points")
     return mape
 
-
 def calculate_mae(actual: List[float], forecast: List[float]) -> float:
     """Calculate Mean Absolute Error."""
     if len(actual) != len(forecast):
@@ -138,6 +137,37 @@ def calculate_mae(actual: List[float], forecast: List[float]) -> float:
     mae = sum(errors) / len(errors)
     print(f"DEBUG [calculate_mae]: MAE = {mae:.4f} from {len(errors)} points")
     return mae
+
+
+def _get_stride_timedelta(stride: str):
+    """Return timedelta for strides such as 1D/7D/1W; otherwise None."""
+    try:
+        offset = to_offset(str(stride))
+        if hasattr(offset, "delta"):
+            return offset.delta
+        return pd.Timedelta(offset)
+    except (ValueError, TypeError):
+        return None
+
+
+def _window_str_to_int(value: str) -> int:
+    """Convert window/stride strings (e.g., 1D, 1W, 1M) to approximate integer days."""
+    try:
+        offset = to_offset(str(value))
+        if hasattr(offset, "delta"):
+            delta = offset.delta
+            return max(int(delta / pd.Timedelta(days=1)), 1)
+        delta = pd.Timedelta(offset)
+        if delta is not None:
+            return max(int(delta / pd.Timedelta(days=1)), 1)
+        approx_map = {"M": 30, "Q": 90, "Y": 365}
+        base = str(value).upper()
+        for token, approx in approx_map.items():
+            if token in base:
+                return approx
+        return max(int(getattr(offset, "n", 1)), 1)
+    except Exception:
+        return 1
 
 
 async def run_backtest(
@@ -194,6 +224,18 @@ async def run_backtest(
         # Get dates in the target region
         start_dt = pd.to_datetime(start_date)
         end_dt = pd.to_datetime(end_date)
+
+        series_tz = df["date"].dt.tz
+        if series_tz is not None:
+            if start_dt.tzinfo is None:
+                start_dt = start_dt.tz_localize(series_tz)
+            if end_dt.tzinfo is None:
+                end_dt = end_dt.tz_localize(series_tz)
+        else:
+            if start_dt.tzinfo is not None:
+                start_dt = start_dt.tz_convert(None)
+            if end_dt.tzinfo is not None:
+                end_dt = end_dt.tz_convert(None)
         
         target_mask = (df['date'] >= start_dt) & (df['date'] <= end_dt)
         target_dates = df.loc[target_mask, 'date'].tolist()
@@ -231,19 +273,35 @@ async def run_backtest(
                 if len(history_df) == 0:
                     continue
                     
-                cutoff_str = history_df['date'].max().strftime('%Y-%m-%d')
+                cutoff_ts = history_df['date'].max()
+                cutoff_str = cutoff_ts.strftime('%Y-%m-%d')
+                future_df = df[df["date"] > cutoff_ts]
+                if len(future_df) < 1:
+                    continue
                 
                 try:
-                    # Create request for this single window
-                    request = ForecastV2Request.from_dfs_pre_split(
+                    request_kwargs = dict(
                         dfs=[window_df],
                         timestamp_col='date',
                         target_cols=['value'],
                         model='sfm-moe-v1',
-                        cutoff_date=cutoff_str,
-                        forecast_window=forecast_window,
-                        stride=stride,
+                        metadata_cols=[],
+                        leak_cols=[],
                     )
+
+                    stride_delta = _get_stride_timedelta(stride)
+                    future_end = future_df['date'].max()
+                    gap = future_end - cutoff_ts
+                    if stride_delta is not None and gap > stride_delta:
+                        request_kwargs['num_target_rows'] = 1
+                        request_kwargs['forecast_window'] = _window_str_to_int(forecast_window)
+                        request_kwargs['stride'] = _window_str_to_int(stride)
+                    else:
+                        request_kwargs['cutoff_date'] = cutoff_str
+                        request_kwargs['forecast_window'] = str(forecast_window)
+                        request_kwargs['stride'] = str(stride)
+
+                    request = ForecastV2Request.from_dfs_pre_split(**request_kwargs)
                     
                     if len(request.samples) == 0:
                         continue

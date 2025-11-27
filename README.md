@@ -13,6 +13,7 @@ A modern web application for analyzing financial and macroeconomic time series d
 - **AI-Powered Analysis**: Search for explanations of price movements using Parallel API
 - **Critical Events Detection**: Find important events that influenced price movements
 - **Backtest & Forecast**: Use Synthefy to forecast future values and backtest predictions
+- **Performance Tab**: Browse stored Synthefy backtests across S&P 500, crypto, forex, and macro assets
 
 ## Architecture
 
@@ -36,6 +37,16 @@ A modern web application for analyzing financial and macroeconomic time series d
 │   └── package.json
 └── README.md
 ```
+
+## Asset Catalog Configuration
+
+- Centralized asset definitions live in `backend/config/assets.yaml`.
+- The file groups each asset class (S&P 500, Crypto, Forex, Macro) with:
+  - Source metadata (e.g., Wikipedia table for S&P 500 constituents)
+  - Canonical ticker lists for crypto/forex universes
+  - Macro indicator + ISO codes for the top 15 GDP countries
+  - Default historical window (2021-01-01 → 2025-12-31) and target database names
+- Scripts and services read this configuration at runtime, so updating the YAML is all that is needed to change coverage.
 
 ## Prerequisites
 
@@ -76,6 +87,51 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+```
+
+### 2b. Initialize Postgres Databases
+
+```bash
+# From the backend directory (with your virtualenv activated)
+python -m scripts.bootstrap_databases
+```
+
+- The CLI defaults to a full bootstrap—no need to pass `--dry-run False`.
+- To preview without making changes, run `python -m scripts.bootstrap_databases --dry-run`.
+- After modifying the script or pulling schema changes, delete any cached bytecode in `backend/scripts/__pycache__/` (or just rerun the file directly) so Typer picks up the latest flags.
+
+### 2c. Download Historical Data (Initial Load)
+
+```bash
+# Download all configured assets (S&P 500, Crypto, Forex, Macro)
+python -m scripts.download_prices
+
+# Limit to a single asset class or subset
+python -m scripts.download_prices --asset-class sp500 --max-assets 25
+```
+
+### 2d. Run Backtests & Persist Metrics
+
+```bash
+# Execute Synthefy backtests for every stored asset
+python -m scripts.run_backtests
+
+# Example: crypto-only smoke test
+python -m scripts.run_backtests --asset-class crypto --max-assets 5
+
+# Start the evaluation window partway through history
+python -m scripts.run_backtests --backtest-start-date 2023-01-01
+```
+
+### 2e. Weekly Refresh Automation
+
+```bash
+# Full workflow: download latest data, run backtests, prune history
+python -m scripts.weekly_refresh
+
+# Dry run or partial refresh options
+python -m scripts.weekly_refresh --dry-run
+python -m scripts.weekly_refresh --skip-download --retain-weeks 8
 ```
 
 ### 3. Frontend Setup
@@ -149,6 +205,8 @@ cd frontend && npm run dev
 | `/api/search` | POST | AI-powered event search |
 | `/api/backtest` | POST | Run backtest using Synthefy |
 | `/api/critical-events` | POST | Find critical events |
+| `/api/backtests/{asset_class}` | GET | List stored backtest metrics for an asset class |
+| `/api/backtests/{asset_class}/{symbol}` | GET | Detailed run + windows for a specific asset |
 
 ## Environment Variables
 
@@ -157,6 +215,12 @@ cd frontend && npm run dev
 | `PARALLEL_API_KEY` | Yes | API key for Parallel web search and critical events |
 | `SYNTHEFY_API_KEY` | Yes | API key for Synthefy backtesting and forecasting |
 | `HAVER_API_KEY` | No | API key for Haver Analytics (needed for macro data) |
+| `POSTGRES_HOST` | Yes | Hostname for the local Postgres instance (default: `localhost`) |
+| `POSTGRES_PORT` | Yes | Port for Postgres connections (default: `5432`) |
+| `POSTGRES_USER` | Yes | User with privileges to create databases/tables |
+| `POSTGRES_PASSWORD` | Yes | Password for `POSTGRES_USER` |
+| `POSTGRES_SUPER_DB` | Yes | Admin database used to bootstrap the asset databases (default: `postgres`) |
+| `POSTGRES_APP_DB_PREFIX` | No | Optional prefix applied when creating per-asset databases |
 
 ## Tech Stack
 
@@ -193,6 +257,16 @@ cd frontend && npm run dev
 ### Haver data not loading
 - Verify `HAVER_API_KEY` is set correctly
 - Check that you have access to the requested database
+
+## Scheduling Weekly Jobs
+
+- Add a cron entry (macOS/Linux) to refresh every Monday at 6am:
+
+```
+0 6 * * 1 cd /Users/you/data_science_agent/backend && source venv/bin/activate && python -m scripts.weekly_refresh run >> ~/weekly_refresh.log 2>&1
+```
+
+- On macOS, you can alternatively create a Launchd plist that runs the same command weekly.
 
 ## License
 

@@ -1,5 +1,6 @@
 """FastAPI backend for Time Series Dashboard."""
 
+import asyncio
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -7,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from db import BacktestRepository
 from services import (
     fetch_yahoo_data,
     list_databases,
@@ -30,6 +32,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
+backtest_repo = BacktestRepository()
 # CORS middleware for frontend
 app.add_middleware(
     CORSMiddleware,
@@ -293,6 +296,52 @@ async def get_critical_events(request: CriticalEventsRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Critical events search failed: {str(e)}")
+
+
+@app.get("/api/backtests/{asset_class}")
+async def list_backtests(
+    asset_class: str,
+    limit: int = Query(50, ge=1, le=500, description="Max number of assets to return"),
+):
+    """List the latest stored backtests for an asset class."""
+    try:
+        results = await asyncio.to_thread(backtest_repo.fetch_asset_summaries, asset_class, limit)
+        return {
+            "asset_class": asset_class,
+            "count": len(results),
+            "results": results,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load backtests: {str(e)}")
+
+
+@app.get("/api/backtests/{asset_class}/{symbol}")
+async def get_backtest_detail(
+    asset_class: str,
+    symbol: str,
+    window_limit: int = Query(500, ge=10, le=5000, description="Max forecast windows to return"),
+):
+    """Return the latest backtest run (including forecast windows) for a given asset."""
+    try:
+        detail = await asyncio.to_thread(
+            backtest_repo.fetch_backtest_detail,
+            asset_class,
+            symbol,
+            window_limit,
+        )
+        return detail
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load backtest detail: {str(e)}")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Dispose shared resources."""
+    backtest_repo.close()
 
 
 if __name__ == "__main__":

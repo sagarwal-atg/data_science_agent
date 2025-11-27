@@ -4,6 +4,59 @@ This guide provides examples of how to use the crypto and forex data features.
 
 ## Quick Start
 
+### Asset Coverage Configuration
+
+- Edit `backend/config/assets.yaml` to customize the tickers and countries managed by the data platform.
+- The default configuration includes:
+  - **S&P 500**: All 500 constituents, fetched dynamically from Wikipedia.
+  - **Crypto**: Top 15 market-cap cryptocurrencies mapped to Yahoo Finance tickers.
+  - **Forex**: 15 highly traded currency pairs.
+  - **Macro**: Top 15 GDP countries tracked via World Bank GDP (indicator `NY.GDP.MKTP.CD`).
+- Scripts will automatically pick up these settings, so no code changes are required when you add or remove assets.
+
+### Database Bootstrapping
+
+- Ensure Postgres is running locally and export the `POSTGRES_*` environment variables documented in the README.
+- From the `backend` directory run:
+
+```bash
+python -m scripts.bootstrap_databases
+# or preview actions
+python -m scripts.bootstrap_databases --dry-run
+```
+
+### Historical Data Download
+
+- Once the databases exist, populate them with the configured assets:
+
+```bash
+python -m scripts.download_prices run               # All assets
+python -m scripts.download_prices run --asset-class crypto --max-assets 5
+```
+
+### Run Backtests
+
+- With price history stored, kick off batch backtests and persist metrics:
+
+```bash
+python -m scripts.run_backtests run
+python -m scripts.run_backtests run --asset-class forex --max-assets 3
+```
+
+### Weekly Refresh Workflow
+
+- Chain download + backtest + cleanup in one command (great for cron jobs):
+
+```bash
+python -m scripts.weekly_refresh run
+python -m scripts.weekly_refresh run --skip-backtests --retain-weeks 6 --dry-run
+```
+
+### Performance Tab (Frontend)
+
+- Open the new **Performance** tab in the left sidebar to browse stored backtests.
+- Switch asset classes (S&P 500, Crypto, Forex, Macro) and drill into any ticker to see horizon, metrics, and window-by-window accuracy without rerunning Synthefy.
+
 ### 1. Load Cryptocurrency Data
 
 **Via UI:**

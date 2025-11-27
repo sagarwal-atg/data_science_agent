@@ -1,5 +1,6 @@
 // Data source types
 export type DataSource = 'yahoo' | 'haver' | 'crypto' | 'forex';
+export type AssetClass = 'sp500' | 'crypto' | 'forex' | 'macro';
 
 // Time series data
 export interface TimeSeriesData {
@@ -165,5 +166,46 @@ export interface CriticalEventsRequest {
   start_date: string;
   end_date: string;
   num_events?: number;
+}
+
+// Stored backtests
+export interface StoredBacktestSummary {
+  symbol: string;
+  name?: string | null;
+  asset_class: AssetClass;
+  mape?: number | null;
+  mae?: number | null;
+  total_points: number;
+  run_week?: string | null;
+  run_key: string;
+  run_timestamp?: string | null;
+}
+
+export interface StoredBacktestWindow {
+  history_start: string;
+  history_end: string;
+  target_start: string;
+  target_end: string;
+  actual_value: number;
+  forecast_value: number;
+  timestamps?: string[];
+}
+
+export interface StoredBacktestDetail {
+  summary: {
+    symbol: string;
+    name?: string | null;
+    asset_class: AssetClass;
+    run_key: string;
+    mape?: number | null;
+    mae?: number | null;
+    total_points: number;
+    forecast_window: string;
+    stride: string;
+    frequency: string;
+    run_week?: string | null;
+    run_timestamp?: string | null;
+  };
+  windows: StoredBacktestWindow[];
 }
 
