@@ -62,6 +62,8 @@ class BacktestRequest(BaseModel):
     values: list[float]
     start_date: str
     end_date: str
+    forecast_window_rows: int = 1  # Number of rows to forecast per window
+    stride_rows: int = 1  # Number of rows to move forward between windows
 
 
 class CriticalEventsRequest(BaseModel):
@@ -259,6 +261,10 @@ async def backtest(request: BacktestRequest):
     
     Uses the selected region as the forecast target, with everything
     before as history. Returns MAPE and other metrics.
+    
+    Parameters:
+        forecast_window_rows: Number of rows to forecast per window (default: 1)
+        stride_rows: Number of rows to move forward between windows (default: 1)
     """
     try:
         result = await run_backtest(
@@ -267,6 +273,8 @@ async def backtest(request: BacktestRequest):
             values=request.values,
             start_date=request.start_date,
             end_date=request.end_date,
+            forecast_window_rows=request.forecast_window_rows,
+            stride_rows=request.stride_rows,
         )
         return result
     except ValueError as e:

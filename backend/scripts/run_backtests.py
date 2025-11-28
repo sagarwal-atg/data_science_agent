@@ -177,6 +177,8 @@ async def _run_job(
     history_start_dt: datetime,
     backtest_start_dt: datetime,
     end_dt: datetime,
+    forecast_window_rows: int = 1,
+    stride_rows: int = 1,
 ):
     timestamps, values = _load_time_series(job, history_start_dt, end_dt)
     if len(timestamps) < MIN_POINTS:
@@ -185,7 +187,8 @@ async def _run_job(
 
     print(
         f"[{job.asset_class}] Running backtest for {job.symbol} "
-        f"({len(timestamps)} pts, eval start {backtest_start_dt.date()})"
+        f"({len(timestamps)} pts, eval start {backtest_start_dt.date()}, "
+        f"window={forecast_window_rows}, stride={stride_rows})"
     )
     try:
         result = await run_backtest(
@@ -194,6 +197,8 @@ async def _run_job(
             values=values,
             start_date=backtest_start_dt.strftime("%Y-%m-%d"),
             end_date=end_dt.strftime("%Y-%m-%d"),
+            forecast_window_rows=forecast_window_rows,
+            stride_rows=stride_rows,
         )
         _store_result(job, backtest_start_dt, end_dt, result)
         print(f"  -> success MAPE={result.mape:.2f}% MAE={result.mae:.4f}")
@@ -202,24 +207,63 @@ async def _run_job(
         _record_failure(job, backtest_start_dt, end_dt, exc)
 
 
+async def _run_job_with_semaphore(
+    semaphore: asyncio.Semaphore,
+    job: BacktestJob,
+    history_start_dt: datetime,
+    backtest_start_dt: datetime,
+    end_dt: datetime,
+    forecast_window_rows: int = 1,
+    stride_rows: int = 1,
+):
+    """Run a job with semaphore for concurrency control."""
+    async with semaphore:
+        await _run_job(
+            job, history_start_dt, backtest_start_dt, end_dt,
+            forecast_window_rows, stride_rows
+        )
+
+
 async def _run_pipeline(
     asset_class: str,
     max_assets: Optional[int],
     start_date: Optional[str],
     end_date: Optional[str],
     backtest_start_date: Optional[str],
+    max_concurrent: int = 5,
+    forecast_window_rows: int = 1,
+    stride_rows: int = 1,
 ):
+    """
+    Run backtests for all assets in parallel with controlled concurrency.
+    
+    Args:
+        asset_class: Asset class to backtest ('sp500', 'crypto', 'forex', 'macro', or 'all')
+        max_assets: Limit number of assets per class
+        start_date: Override history start date
+        end_date: Override end date
+        backtest_start_date: Date when evaluation begins
+        max_concurrent: Maximum number of concurrent backtests (default: 5)
+        forecast_window_rows: Number of rows to forecast per window (default: 1)
+        stride_rows: Number of rows to move forward between windows (default: 1)
+    """
     if asset_class != "all" and asset_class not in ASSET_CLASSES:
         raise ValueError(f"asset_class must be one of {ASSET_CLASSES} or 'all'")
 
     settings = DatabaseSettings.from_env()
     targets = get_asset_databases(settings.app_prefix)
 
+    # Semaphore to control concurrent API calls
+    semaphore = asyncio.Semaphore(max_concurrent)
+
     selected_classes = ASSET_CLASSES if asset_class == "all" else (asset_class,)
     for cls in selected_classes:
         engine = build_engine_for(targets[cls], settings)
         jobs = _load_assets(engine, cls, limit=max_assets)
+        print(f"\n{'='*60}")
         print(f"Processing {len(jobs)} assets for class '{cls}'")
+        print(f"  Max concurrent: {max_concurrent}, Window: {forecast_window_rows}, Stride: {stride_rows}")
+        print(f"{'='*60}")
         cls_start_default, cls_end_default = _default_dates(cls)
         history_start_dt = pd.Timestamp(start_date or cls_start_default, tz="UTC")
         end_dt = pd.Timestamp(end_date or cls_end_default, tz="UTC")
@@ -232,8 +276,17 @@ async def _run_pipeline(
             raise ValueError("backtest_start_date must be >= start_date/history start date")
         if backtest_start_dt >= end_dt:
             raise ValueError("backtest_start_date must be before end_date")
-        for job in jobs:
-            await _run_job(job, history_start_dt, backtest_start_dt, end_dt)
+        
+        # Run all jobs in parallel with semaphore-controlled concurrency
+        tasks = [
+            _run_job_with_semaphore(
+                semaphore, job, history_start_dt, backtest_start_dt, end_dt,
+                forecast_window_rows, stride_rows
+            )
+            for job in jobs
+        ]
+        await asyncio.gather(*tasks, return_exceptions=True)
+        
         engine.dispose()
 
 
@@ -264,6 +317,24 @@ def parse_args() -> argparse.Namespace:
         "--backtest-start-date",
         help="Date (YYYY-MM-DD) when evaluation begins; defaults to start-date/history start.",
     )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=5,
+        help="Maximum number of concurrent backtests (default: 5).",
+    )
+    parser.add_argument(
+        "--forecast-window",
+        type=int,
+        default=1,
+        help="Number of rows to forecast per window (default: 1).",
+    )
+    parser.add_argument(
+        "--stride",
+        type=int,
+        default=1,
+        help="Number of rows to move forward between windows (default: 1).",
+    )
     return parser.parse_args()
 
 
@@ -276,6 +347,9 @@ def main() -> None:
             start_date=args.start_date,
             end_date=args.end_date,
             backtest_start_date=args.backtest_start_date,
+            max_concurrent=args.max_concurrent,
+            forecast_window_rows=args.forecast_window,
+            stride_rows=args.stride,
         )
     )
 

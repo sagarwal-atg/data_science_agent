@@ -91,6 +91,11 @@ pip install -r requirements.txt
 
 ### 2b. Initialize Postgres Databases
 
+Local run of the database
+```bash
+brew services start postgresql
+```
+
 ```bash
 # From the backend directory (with your virtualenv activated)
 python -m scripts.bootstrap_databases
