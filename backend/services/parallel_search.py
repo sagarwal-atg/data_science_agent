@@ -33,12 +33,64 @@ class SearchResult(BaseModel):
     basis: list[SearchBasis]
 
 
+def _format_time_series_summary(
+    timestamps: Optional[list[str]],
+    values: Optional[list[float]],
+    currency: Optional[str] = None,
+) -> str:
+    """
+    Format time series data into a readable summary for the search context.
+    
+    Includes start/end values, min/max, percentage change, and key data points.
+    """
+    if not timestamps or not values or len(timestamps) == 0:
+        return ""
+    
+    unit = f" {currency}" if currency else ""
+    
+    start_val = values[0]
+    end_val = values[-1]
+    min_val = min(values)
+    max_val = max(values)
+    min_idx = values.index(min_val)
+    max_idx = values.index(max_val)
+    
+    # Calculate change
+    abs_change = end_val - start_val
+    pct_change = ((end_val - start_val) / start_val * 100) if start_val != 0 else 0
+    
+    summary_lines = [
+        f"- Starting Value ({timestamps[0][:10]}): {start_val:,.2f}{unit}",
+        f"- Ending Value ({timestamps[-1][:10]}): {end_val:,.2f}{unit}",
+        f"- Absolute Change: {abs_change:+,.2f}{unit}",
+        f"- Percentage Change: {pct_change:+.2f}%",
+        f"- Period Minimum: {min_val:,.2f}{unit} on {timestamps[min_idx][:10]}",
+        f"- Period Maximum: {max_val:,.2f}{unit} on {timestamps[max_idx][:10]}",
+    ]
+    
+    # Add key intermediate data points (sample ~5 evenly spaced)
+    if len(values) > 5:
+        step = len(values) // 5
+        sample_points = []
+        for i in range(0, len(values), step):
+            if i > 0 and i < len(values) - 1:  # Skip first and last (already shown)
+                sample_points.append(f"  {timestamps[i][:10]}: {values[i]:,.2f}{unit}")
+        if sample_points:
+            summary_lines.append("- Key Data Points:")
+            summary_lines.extend(sample_points[:5])  # Limit to 5 points
+    
+    return "\n".join(summary_lines)
+
+
 async def search_time_series_event(
     ticker: str,
     query: str,
     start_date: str,
     end_date: str,
     change_description: Optional[str] = None,
+    timestamps: Optional[list[str]] = None,
+    values: Optional[list[float]] = None,
+    currency: Optional[str] = None,
 ) -> SearchResult:
     """
     Search for explanation of time series movement using Parallel API.
@@ -49,6 +101,9 @@ async def search_time_series_event(
         start_date: Start date of the period (YYYY-MM-DD)
         end_date: End date of the period (YYYY-MM-DD)
         change_description: Optional description of price change
+        timestamps: Optional list of timestamps for the selected range
+        values: Optional list of values for the selected range
+        currency: Optional currency/unit label
         
     Returns:
         SearchResult with explanation and citations
@@ -62,6 +117,9 @@ async def search_time_series_event(
     
     client = Parallel(api_key=api_key)
     
+    # Build time series summary if data is provided
+    ts_summary = _format_time_series_summary(timestamps, values, currency)
+    
     # Construct contextual search query
     search_input = f"""
 {query}
@@ -70,8 +128,11 @@ Context:
 - Asset/Series: {ticker}
 - Time Period: {start_date} to {end_date}
 {f'- Observed Change: {change_description}' if change_description else ''}
-
-Please search for news, events, or factors that could explain what happened to {ticker} during this specific time period ({start_date} to {end_date}).
+{f'''
+Time Series Data for Selected Period:
+{ts_summary}
+''' if ts_summary else ''}
+Please search for news, events, economic factors, or market conditions that could explain what happened to {ticker} during this specific time period ({start_date} to {end_date}). Focus on events that correlate with the observed data movements.
 """
     
     # Create task run

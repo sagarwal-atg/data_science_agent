@@ -1,0 +1,16 @@
+# Default values for AlphaEvolve configuration. Values here can be overridden
+# by environment variables as defined in `alphaevolve/config.py`.
+population_size: 1000
+archive_size: 100
+num_islands: 5
+elite_selection_ratio: 0.1
+exploration_ratio: 0.2
+exploitation_ratio: 0.7
+diversity_metric: edit_distance
+prompt_population_size: 50
+prompt_mutation_rate: 0.3
+prompt_iterations: 5
+llm_backend: openai
+local_model_name:
+local_model_path:
+local_server_url:

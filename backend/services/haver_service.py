@@ -3,6 +3,7 @@
 import os
 from typing import Any, Optional
 
+import pandas as pd
 from pydantic import BaseModel
 
 
@@ -280,8 +281,6 @@ async def fetch_haver_data(database: str, series: str) -> HaverTimeSeriesData:
         
         # Find value column
         value_col = "value" if "value" in df.columns else [c for c in df.columns if c != timestamp_col][0]
-        
-        import pandas as pd
         
         # Convert timestamps to ISO format strings
         try:

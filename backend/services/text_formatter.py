@@ -1,4 +1,4 @@
-"""Text formatting service using OpenAI to improve readability."""
+"""Text formatting service using OpenAI GPT-5.1 Responses API to improve readability."""
 
 import os
 from typing import Optional
@@ -6,7 +6,7 @@ from typing import Optional
 
 async def format_text_with_llm(text: str) -> str:
     """
-    Format text using OpenAI to add markdown formatting for better readability.
+    Format text using OpenAI GPT-5.1 Responses API to add markdown formatting for better readability.
     
     Adds bold, colors, and structure to make the text more digestible.
     
@@ -41,19 +41,17 @@ Rules:
 Text to format:
 {text}
 
-Return only the formatted markdown text, no explanations:"""
+Return only the formatted markdown text, no explanations."""
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Using mini for cost efficiency
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that formats financial analysis text to be more readable using markdown."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=2000,
+        # Use GPT-5.1 Responses API with low reasoning for fast formatting
+        response = client.responses.create(
+            model="gpt-5.1",
+            input=prompt,
+            reasoning={"effort": "low"},  # Low reasoning for simple formatting
+            text={"verbosity": "medium"},
         )
         
-        formatted_text = response.choices[0].message.content.strip()
+        formatted_text = response.output_text.strip()
         return formatted_text
         
     except Exception as e:

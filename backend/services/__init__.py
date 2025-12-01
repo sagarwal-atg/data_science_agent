@@ -40,6 +40,11 @@ from .sp500_service import (
     SP500Constituent,
 )
 
+# Note: Market Intelligence Services are imported lazily in main.py to avoid circular imports
+# Use: from services.market_intelligence_service import ...
+# Use: from services.factor_discovery_service import ...
+# Use: from services.enhanced_search_service import ...
+
 __all__ = [
     "fetch_yahoo_data",
     "TimeSeriesData",
