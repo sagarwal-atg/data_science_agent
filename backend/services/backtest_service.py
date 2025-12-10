@@ -336,7 +336,7 @@ async def run_backtest(
             dfs=[df],
             timestamp_col='date',
             target_cols=['value'],
-            model='sfm-moe-v1',
+            model='Migas-1.0',
             num_target_rows=num_target_rows,
             forecast_window=forecast_window_rows,
             stride=stride_rows,

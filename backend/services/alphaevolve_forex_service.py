@@ -251,19 +251,26 @@ JSON Format:
     "key_improvements": ["Added RSI filter", "Reduced leverage", "Added trailing stop"]
   },
   "blocks": {
-    "params": "params = dict(\\n    leverage=0.4,\\n    sma_fast=12,\\n    ...\\n)",
-    "indicators": "self.sma = bt.indicators.SMA(...)",
-    "trading_logic": "if condition:\\n    self.buy()..."
+    "params": "params = dict(\n    leverage=0.4,\n    sma_fast=12,\n    sma_slow=50,\n)",
+    "indicators": "self.sma_fast = bt.indicators.SMA(self.data.close, period=self.p.sma_fast)\nself.rsi = bt.indicators.RSI(self.data.close, period=14)",
+    "trading_logic": "if not self.position:\n    if self.crossover > 0 and self.rsi < 70:\n        size = (self.broker.getvalue() * self.p.leverage) / self.data.close[0]\n        self.order = self.buy(size=size)"
   }
 }
 
-OR for complete rewrites:
-{
-  "reasoning": "...",
-  "summary": "...",
-  "changes": {...},
-  "code": "from collections import deque\\nimport backtrader as bt\\n\\nclass Strategy..."
-}
+**CRITICAL CODE FORMATTING RULES:**
+1. DO NOT include extra indentation in your code blocks - they will be auto-indented
+2. Start each line at column 0 (no leading spaces)
+3. Use \\n for newlines in JSON strings
+4. Ensure proper Python syntax - each block must be syntactically correct
+5. For "params" block: just the dict definition, no extra indentation
+6. For "indicators" block: self.xxx = ... lines, each starting at column 0
+7. For "trading_logic" block: if/else statements starting at column 0
+
+CORRECT Example for trading_logic:
+"trading_logic": "if not self.position:\\n    if self.crossover > 0:\\n        self.buy()\\nelse:\\n    if self.crossover < 0:\\n        self.close()"
+
+WRONG Example (has extra leading spaces):
+"trading_logic": "    if not self.position:\\n        if self.crossover > 0:"
 
 **GUIDELINES:**
 - Use Backtrader indicators (bt.indicators.SMA, RSI, MACD, Bollinger, ATR, etc.)
@@ -504,10 +511,13 @@ Remember: Respond ONLY with valid JSON. No markdown, no explanations."""
 
 
 def _apply_patch(parent_code: str, diff_json: Dict[str, Any]) -> str:
-    """Apply LLM-generated patch to parent code."""
+    """Apply LLM-generated patch to parent code with proper indentation handling."""
     # Full code replacement
     if "code" in diff_json:
-        return diff_json["code"]
+        code = diff_json["code"]
+        # Validate the code compiles
+        _validate_python_syntax(code)
+        return code
     
     blocks = diff_json.get("blocks", {})
     if not blocks:
@@ -515,31 +525,225 @@ def _apply_patch(parent_code: str, diff_json: Dict[str, Any]) -> str:
     
     # Regex for EVOLVE-BLOCK regions
     block_re = re.compile(
-        r"(^[ \t]*# === EVOLVE-BLOCK:\s*(?P<name>\w+).*?$\n)"
+        r"(^(?P<indent>[ \t]*)# === EVOLVE-BLOCK:\s*(?P<name>\w+).*?$\n)"
         r"(?P<body>.*?)"
-        r"(^\s*# === END EVOLVE-BLOCK.*?$)",
+        r"(^[ \t]*# === END EVOLVE-BLOCK.*?$)",
         re.M | re.S,
     )
     
     def replace_block(match):
         name = match.group("name")
         head = match.group(1)
-        tail = match.group(4)
+        tail = match.group(5)
         new_body = blocks.get(name)
+        base_indent = match.group("indent")
         
         if new_body is None:
             return match.group(0)
         
-        # Preserve indentation
-        indent = re.match(r"^[ \t]*", match.group("body")).group(0)
-        new_body_indented = "\n".join(
-            indent + line if line.strip() else line
-            for line in new_body.strip().splitlines()
-        ) + "\n"
+        # Process the new body code
+        new_body = new_body.strip()
+        if not new_body:
+            return match.group(0)
+        
+        # Split into lines and normalize indentation
+        lines = new_body.splitlines()
+        
+        # Find minimum indentation in the new code (ignore empty lines)
+        min_indent = float('inf')
+        for line in lines:
+            if line.strip():  # Non-empty line
+                leading = len(line) - len(line.lstrip())
+                min_indent = min(min_indent, leading)
+        
+        if min_indent == float('inf'):
+            min_indent = 0
+        
+        # Re-indent all lines with the correct base indentation (base + 4 spaces for inside class/method)
+        content_indent = base_indent + "    "  # Content is indented one level more than the comment
+        new_lines = []
+        for line in lines:
+            if line.strip():  # Non-empty line
+                # Remove old indentation and add new
+                stripped = line[min_indent:] if len(line) > min_indent else line.lstrip()
+                new_lines.append(content_indent + stripped)
+            else:
+                new_lines.append("")  # Preserve empty lines
+        
+        new_body_indented = "\n".join(new_lines) + "\n"
         
         return head + new_body_indented + tail
     
-    return block_re.sub(replace_block, parent_code)
+    result = block_re.sub(replace_block, parent_code)
+    
+    # Try to repair any indentation issues
+    result = _repair_python_code(result)
+    
+    # Validate the final code compiles
+    _validate_python_syntax(result)
+    
+    return result
+
+
+def _repair_python_code(code: str) -> str:
+    """Attempt to repair common indentation issues in generated Python code."""
+    import ast
+    
+    # First, try to parse as-is
+    try:
+        ast.parse(code)
+        return code  # Code is valid, no repair needed
+    except SyntaxError:
+        pass  # Need to attempt repair
+    
+    lines = code.splitlines()
+    repaired_lines = []
+    
+    # Track expected indentation based on context
+    indent_stack = [0]
+    in_class = False
+    in_method = False
+    
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        
+        if not stripped:
+            repaired_lines.append("")
+            continue
+        
+        # Calculate current indentation
+        current_indent = len(line) - len(line.lstrip())
+        
+        # Detect structure
+        if stripped.startswith("class "):
+            in_class = True
+            repaired_lines.append(stripped)  # Class at column 0
+            indent_stack = [0, 4]  # Next level is 4 spaces
+        elif stripped.startswith("def "):
+            if in_class:
+                repaired_lines.append("    " + stripped)  # Method at 4 spaces
+                indent_stack = [0, 4, 8]  # Next level is 8 spaces
+                in_method = True
+            else:
+                repaired_lines.append(stripped)  # Function at column 0
+                indent_stack = [0, 4]
+        elif stripped.startswith(("if ", "elif ", "else:", "for ", "while ", "try:", "except", "finally:", "with ")):
+            # Control flow - use current expected indent
+            expected = indent_stack[-1] if indent_stack else 0
+            repaired_lines.append(" " * expected + stripped)
+            if stripped.endswith(":"):
+                indent_stack.append(expected + 4)
+        elif stripped.startswith(("return ", "break", "continue", "pass", "raise ")):
+            # Statements - use current expected indent
+            expected = indent_stack[-1] if indent_stack else 0
+            repaired_lines.append(" " * expected + stripped)
+        elif stripped.startswith("self.") or stripped.startswith("@"):
+            # Attribute assignment or decorator
+            if in_method:
+                expected = 8  # Inside method
+            elif in_class:
+                expected = 4  # Inside class but not method
+            else:
+                expected = indent_stack[-1] if indent_stack else 0
+            repaired_lines.append(" " * expected + stripped)
+        else:
+            # Other lines - try to maintain relative indentation
+            if indent_stack:
+                expected = indent_stack[-1]
+                # If line seems to be a continuation or nested, add extra indent
+                if current_indent > 0:
+                    # Preserve relative indentation but normalize to expected base
+                    relative_indent = current_indent - (indent_stack[-2] if len(indent_stack) > 1 else 0)
+                    relative_indent = max(0, relative_indent)
+                    repaired_lines.append(" " * (expected + relative_indent) + stripped)
+                else:
+                    repaired_lines.append(" " * expected + stripped)
+            else:
+                repaired_lines.append(stripped)
+        
+        # Pop indent stack if we're done with a block (heuristic: next line has less indent)
+        if i + 1 < len(lines):
+            next_line = lines[i + 1].strip()
+            if next_line and not next_line.startswith(("#", '"""', "'''")):
+                next_indent = len(lines[i + 1]) - len(lines[i + 1].lstrip())
+                while len(indent_stack) > 1 and indent_stack[-1] > next_indent:
+                    indent_stack.pop()
+    
+    repaired_code = "\n".join(repaired_lines)
+    
+    # Try to parse the repaired code
+    try:
+        ast.parse(repaired_code)
+        logger.info("  🔧 Code auto-repaired successfully")
+        return repaired_code
+    except SyntaxError:
+        # Repair failed, return original
+        return code
+
+
+def _apply_parameter_mutation(code: str) -> str:
+    """Apply simple parameter mutations as a fallback when LLM code generation fails."""
+    import random
+    
+    # Find the params block and mutate numeric values
+    lines = code.splitlines()
+    mutated_lines = []
+    in_params = False
+    
+    for line in lines:
+        if "# === EVOLVE-BLOCK: params" in line:
+            in_params = True
+            mutated_lines.append(line)
+            continue
+        if "# === END EVOLVE-BLOCK" in line and in_params:
+            in_params = False
+            mutated_lines.append(line)
+            continue
+        
+        if in_params:
+            # Try to mutate numeric values
+            import re
+            def mutate_number(match):
+                value = float(match.group(0))
+                # Random mutation: ±20%
+                mutation = value * (1 + random.uniform(-0.2, 0.2))
+                # Keep integers as integers
+                if '.' not in match.group(0):
+                    return str(int(round(mutation)))
+                return f"{mutation:.4f}".rstrip('0').rstrip('.')
+            
+            # Mutate numbers (but not in comments)
+            if '#' not in line or line.index('#') > line.index('=') if '=' in line else True:
+                mutated_line = re.sub(r'\b\d+\.?\d*\b', mutate_number, line)
+                mutated_lines.append(mutated_line)
+            else:
+                mutated_lines.append(line)
+        else:
+            mutated_lines.append(line)
+    
+    result = "\n".join(mutated_lines)
+    
+    # Validate the mutation doesn't break the code
+    _validate_python_syntax(result)
+    
+    return result
+
+
+def _validate_python_syntax(code: str) -> None:
+    """Validate that Python code has correct syntax."""
+    import ast
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        logger.error(f"Generated code has syntax error: {e}")
+        logger.error(f"Problematic code around line {e.lineno}:")
+        lines = code.splitlines()
+        start = max(0, e.lineno - 3)
+        end = min(len(lines), e.lineno + 2)
+        for i in range(start, end):
+            marker = ">>> " if i == e.lineno - 1 else "    "
+            logger.error(f"{marker}{i+1}: {lines[i]}")
+        raise ValueError(f"Generated code has syntax error at line {e.lineno}: {e.msg}")
 
 
 def _format_metrics(metrics: Dict[str, Any]) -> str:
@@ -968,15 +1172,43 @@ async def evolve_forex_strategy(
             logger.info(f"  💭 Reasoning: {reasoning[:200]}...")
             logger.info(f"  📝 Summary: {summary}")
             
-            # Apply patch to create child
-            child_code = _apply_patch(parent["code"], diff_json)
-            
-            # Log what was changed
-            if "code" in diff_json:
-                logger.info(f"  📝 LLM provided complete new strategy")
-            elif "blocks" in diff_json:
-                blocks_changed = list(diff_json["blocks"].keys())
-                logger.info(f"  📝 LLM modified blocks: {blocks_changed}")
+            # Apply patch to create child (with retry on failure)
+            try:
+                child_code = _apply_patch(parent["code"], diff_json)
+                
+                # Log what was changed
+                if "code" in diff_json:
+                    logger.info(f"  📝 LLM provided complete new strategy")
+                elif "blocks" in diff_json:
+                    blocks_changed = list(diff_json["blocks"].keys())
+                    logger.info(f"  📝 LLM modified blocks: {blocks_changed}")
+                    
+            except ValueError as patch_error:
+                # Code patching failed - try parameter-only mutation as fallback
+                logger.warning(f"  ⚠️ Code patch failed: {patch_error}")
+                logger.info(f"  🔄 Trying parameter-only mutation as fallback...")
+                
+                try:
+                    child_code = _apply_parameter_mutation(parent["code"])
+                    reasoning = f"Fallback: parameter mutation only. Original error: {patch_error}"
+                    summary = "Applied random parameter tweaks due to code generation error"
+                    changes = {"blocks_modified": ["params"], "key_improvements": ["Parameter optimization"]}
+                except Exception as fallback_error:
+                    logger.error(f"  ✗ Fallback mutation also failed: {fallback_error}")
+                    evolution_log.append(EvolutionLogEntry(
+                        iteration=iteration,
+                        parent_id=parent["id"],
+                        child_id="",
+                        reasoning=reasoning,
+                        summary=f"Code generation failed: {patch_error}",
+                        changes=changes,
+                        parent_sharpe=parent["metrics"]["sharpe"],
+                        child_sharpe=0.0,
+                        improvement=0.0,
+                        success=False,
+                        error=str(patch_error),
+                    ))
+                    continue
             
             # Evaluate child
             try:
